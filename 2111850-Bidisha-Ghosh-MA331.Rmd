@@ -1,0 +1,129 @@
+---
+title: "MA331-Coursework"
+author: "2111850-Bidisha-Ghosh"
+subtitle: Text analytics of the TED talks by Peter Diamandis and David Byrne
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+### Don't delete this setup code chunk from your file
+knitr::opts_chunk$set(echo = FALSE)   ## DON'T ALTER THIS: this is to prevent printing the code in your "html" file.
+
+# Extend the list below to load all the packages required for your analyses here:
+#===============================================================================
+
+library(dsEssex)
+library(tidyverse)
+library(tidytext)
+# install.packages("ggrepel")
+library(ggrepel)
+
+# load the 'ted_talks' data
+#=========================
+data(ted_talks)
+```
+
+
+## Introduction
+
+This project is about Sentiment Analysis of the transcript of ted_talks given by two speakers which were randomly assigned to me. The name of my speakers are Peter Diamandis and David Byrne. The topic headline for Peter Diamandis was "Stephen Hawkins zero gravity flight" and for David, it was "How architecture helped music evolve". The speech should be be converted into tidytext using tidyverse pacakge. The main task of the project was to pull out the most used words and compare them using plots and graphs.
+
+
+
+
+## Methods
+
+The first method which has been used is tokenisation. Tokenisation converts a sentence into single words that is called as tokens. This makes easier to analyse the words. There are some words which adds no value for analyzation of the ted_talks. Then for getting the top 25 most used words for both the speakers, count function is used from deplyr package. Numerical measure "sum" is applied for plotting the comparison graph.
+
+
+
+
+## Results
+Loading the ted_talks data from the dsEssex package.Filtered the speakers speeches and concatenated them with c() function and gave the variable name df. Applied head() to view the data.
+
+
+```{r}
+#To filter data of the talks given by the two speakers.
+df<- ted_talks %>%
+        filter(speaker %in% c("Peter Diamandis","David Byrne"))
+#To display the first n rows.
+head(df)
+```
+After seeing the headlines of both the speakers we can get some idea about what both speakers are talking about.
+```{r}
+#Using tidytext fuction unnest_tokens for tidying and tokenising the ted_talks data into single words.
+df_talks<-df %>%
+         tidytext::unnest_tokens(word, text)
+#the "anti_join" from dplyr package will pull out those words which are irrevalent and always #common within any conversation.Those words are called stopwords. Examples of stop words like #'the','and','to' and many more.
+df_talks_nonstop<- df_talks %>%
+                    dplyr::anti_join(get_stopwords())
+```
+
+```{r}
+#From deplyr, count() is used to show the frequency and sort the words used by Peter in his talks.
+Peter_words<-df_talks_nonstop %>%
+              dplyr::filter(speaker =="Peter Diamandis") %>%
+              dplyr::count(speaker, word, sort = "True")
+head(Peter_words)
+```
+Peter Diamandis headline is Stephen Hawkin's zero gravity flight.He is passionate about space and got the second prize in genomics.He talks about stephen hawkins dream and his conversation with him. Stephen told him that he cannot take him to space but will take him in a weghtless fight. It took 11 years for NASA astronauts to make it operational.He also talks about how technology is growing at faster rate and it has played an important role in the making people's live easier. 
+```{r}
+# filters dt_talks_nonstop and counts words by David.
+David_words<-df_talks_nonstop %>%
+             dplyr::filter(speaker =="David Byrne") %>%
+             dplyr::count(speaker, word, sort = "True")
+head(David_words)
+```
+David Bryne talks about music, as we can see from the output above.He tries to convey that architecture and technology has a positive impact on the music industry. The recording rooms are more efficient and lots of features.He also mentions african music and jazz was one of the type of music he mentioned about.
+
+
+
+```{r}
+#ggplots geom_col() is used to show the top 25 words used by Peter..
+Peter_words %>%
+  dplyr::slice_max(n, n=25) %>%
+  dplyr::mutate(word= reorder(word,n)) %>%
+  ggplot2::ggplot(aes(n,word)) + ggplot2::geom_col()
+```
+
+The words; (World,last,percent,can,us) are used by Peter most of the time in his conversation.
+
+```{r}
+#ggplots geom_col() is used to get the top 25 words used by David.
+David_words %>%
+  dplyr::slice_max(n, n=25) %>%
+  dplyr::mutate(word= reorder(word,n)) %>%
+  ggplot2::ggplot(aes(n,word)) + ggplot2::geom_col()
+```
+
+The words: (music,like,kind,got,now) are used more often by David in his conversation.
+
+
+```{r}
+#At first it has selected the sum of words which is greater than ten for both the speakers.
+#It has taken Peter words on x axis and then David's on y axis.
+#With diagonal line as 1.
+dplyr::bind_rows(Peter_words,David_words) %>%
+  group_by(word) %>%
+  filter(sum(n) >10) %>%
+  ungroup() %>%
+  pivot_wider(names_from = "speaker", values_from = "n", values_fill = 0) %>%
+  ggplot(aes(`Peter Diamandis`,`David Byrne`)) +
+  geom_abline(color= "green", size=1.2, alpha=0.90, lty=5)  +
+  geom_text_repel(aes(label=word), max.overlaps=70)
+``` 
+
+As we can see from the above plot, David has used the word "music" more than fifty times. Peter used the word, "world" twelve times. The word "can" was commonly used by both of the speakers.
+
+
+df_talks shows the views of both the speakers. Next anti_join will remove all the stopwords to make our speech more informative.
+From dplyr package, count() is applied to pull out those words which are frequently used by both of the speakers.
+
+To plot the frequencies of the top 25 words, slice_max will select to those words and from ggplot, geom_col() will help to represent the graph.
+
+
+
+## Discussion
+First of all, luckily I got the best topics of ted talks. The main topic of the conversation was Technology and Music. I wanted to pull out some specific lines which were interesting from both the speakers and then analyse them. Give some sentiments to it like is it entertainment,research,technology and growth. Then plot a pie chart. The challenge I faced in was for the last code where at first all my words were collapsing together and cannot be infered from the plot. Then I altered the value of max_overlap to get the above plot.
